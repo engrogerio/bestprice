@@ -1,0 +1,21 @@
+# Copie para terraform.tfvars e preencha com os valores da sua conta AWS
+# NUNCA commite terraform.tfvars com a senha real no git.
+
+aws_region  = "sa-east-1"
+environment = "dev"
+
+vpc_id     = "vpc-xxxxxxxx"
+subnet_ids = ["subnet-aaaaaaa", "subnet-bbbbbbb"]
+
+# CIDR de onde o backend (ECS/EC2/Lambda) vai acessar o banco
+allowed_cidr_blocks = ["10.0.0.0/16"]
+
+db_name     = "bestprice"
+db_username = "bestprice_admin"
+# db_password -> não coloque aqui; use: export TF_VAR_db_password="..."
+
+instance_class        = "db.t4g.micro"
+allocated_storage_gb  = 20
+multi_az              = false
+backup_retention_days = 7
+postgres_version      = "16"

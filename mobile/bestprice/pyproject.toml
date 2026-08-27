@@ -1,0 +1,32 @@
+[tool.briefcase]
+project_name = "BestPrice"
+bundle = "com.bestprice"
+version = "1.0.0"
+url = "https://example.com/bestprice"
+license.file = "LICENSE"
+author = "BestPrice"
+author_email = "contato@example.com"
+
+[tool.briefcase.app.bestprice]
+formal_name = "BestPrice"
+description = "Compare precos lendo o cupom fiscal e o codigo de barras dos produtos"
+sources = ["src/bestprice"]
+requires = [
+    "httpx",
+    "pyzbar",       # decodificacao de codigo de barras a partir de imagem da camera
+    "pillow",
+]
+
+[tool.briefcase.app.bestprice.android]
+requires = [
+    "pyzbar",
+]
+permission.CAMERA = "BestPrice precisa da camera para ler codigos de barras"
+
+[tool.briefcase.app.bestprice.iOS]
+permission.NSCameraUsageDescription = "BestPrice precisa da camera para ler codigos de barras"
+
+# Sistemas operacionais suportados pelo BeeWare/Briefcase para este app
+[tool.briefcase.app.bestprice.macOS]
+[tool.briefcase.app.bestprice.linux]
+[tool.briefcase.app.bestprice.windows]
