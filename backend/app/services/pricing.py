@@ -1,12 +1,14 @@
 from datetime import datetime
 from decimal import Decimal
+from logging import getLogger
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.models.models import CupomHeader, CupomItem
+from app.models.models import CupomHeader, CupomItem, CupomKeys
 
+logger = getLogger(__name__)
 
 def _parse_data(valor: str | None) -> datetime | None:
     if not valor:
@@ -19,7 +21,7 @@ def _parse_data(valor: str | None) -> datetime | None:
     return None
 
 
-async def salvar_cupom(db: AsyncSession, chave_acesso: str, raw: dict) -> CupomHeader:
+async def save_cupom(db: AsyncSession, chave_acesso: str, raw: dict) -> CupomHeader:
     """
     Normaliza a resposta da Infosimples e grava em cupom_header + cupom_items.
 
@@ -32,32 +34,41 @@ async def salvar_cupom(db: AsyncSession, chave_acesso: str, raw: dict) -> CupomH
     """
     existente = await db.scalar(select(CupomHeader).where(CupomHeader.chave_acesso == chave_acesso))
     if existente:
+        logger.info(f'cfe {chave_acesso} already on db!')
         return existente
-
+    logger.info(f'cfe {chave_acesso} being processed!')
+     
+    data = raw.get("data")[0] # why always 0 ?
     header = CupomHeader(
         chave_acesso=chave_acesso,
-        cnpj_emitente=raw.get("cnpj") or raw.get("emitente", {}).get("cnpj"),
-        razao_social=raw.get("razao_social") or raw.get("emitente", {}).get("razao_social"),
-        nome_fantasia=raw.get("nome_fantasia") or raw.get("emitente", {}).get("nome_fantasia"),
-        municipio=raw.get("municipio") or raw.get("emitente", {}).get("municipio"),
-        uf=raw.get("uf") or raw.get("emitente", {}).get("uf") or "SP",
-        data_emissao=_parse_data(raw.get("data_emissao")),
-        valor_total=raw.get("valor_total"),
+        cnpj_emitente=data.get("emitente", {}).get("normalizado_cnpj"),
+        razao_social=data.get("emitente", {}).get("nome_razao_social"),
+        nome_fantasia=data.get("emitente", {}).get("nome_fantasia"),
+        logradouro=data.get("emitente", {}).get("endereco"),
+        bairro=data.get("emitente", {}).get("bairro_distrito"),
+        municipio=data.get("emitente", {}).get("municipio"),
+        uf=data.get("emitente", {}).get("uf"),
+        cep=data.get("emitente", {}).get("cep"),
+        data_emissao=datetime.fromisoformat(data.get("cfe").get("data_hora_emissao")),
+        numero_cfe=data.get("cfe", {}).get("dados_cfe").get("numero_cfe"),
+        valor_total=Decimal(str(data.get("totais").get("totais").get("normalizado_valor_total_cfe"))),
         status_consulta="ok",
         raw_response=raw,
     )
     db.add(header)
     await db.flush()  # garante header.id antes de criar os items
 
-    for idx, item in enumerate(raw.get("produtos", []) or raw.get("itens", []), start=1):
+    for idx, item in enumerate(data.get("produtos_servicos", []), start=1):
         db.add(CupomItem(
             cupom_header_id=header.id,
             ordem=idx,
-            codigo_barras=item.get("codigo_barras") or item.get("ean") or item.get("gtin"),
-            descricao=item.get("descricao") or item.get("descricao_produto") or "Item sem descrição",
-            quantidade=Decimal(str(item.get("quantidade", 1))),
-            valor_unitario=Decimal(str(item.get("valor_unitario", 0))),
-            valor_total=Decimal(str(item.get("valor_total", 0))),
+            codigo_barras=item.get("codigo_gtin"),
+            descricao=item.get("descricao") or "Item sem descrição",
+            quantidade=item.get("normalizado_qtd_comercial", 1),
+            valor_unitario=item.get("normalizado_valor_unitario", 0),
+            unidade=item.get("unidade_comercial"),
+            valor_desconto=item.get("normalizado_valor_desconto", 0),
+            valor_total=item.get("normalizado_valor_liquido_item"),
             raw_response=item,
         ))
 
@@ -65,6 +76,24 @@ async def salvar_cupom(db: AsyncSession, chave_acesso: str, raw: dict) -> CupomH
     await db.refresh(header)
     return header
 
+async def save_cupom_not_processed(db: AsyncSession, chave_acesso: str):
+    """
+    Salva cfe id que o infosimples retornou erros para processar no futuro.
+    """
+    existente = await db.scalar(select(CupomHeader).where(CupomHeader.chave_acesso == chave_acesso))
+    if existente:
+        logger.info(f'cfe {chave_acesso} already on db!')
+        return
+    logger.info(f'cfe {chave_acesso} being saved for future querying!')
+    # if blank due to an error, saves on pending_cfes table
+
+    header = CupomKeys(
+        chave_acesso=chave_acesso,
+    )
+    db.add(header)
+    await db.commit()
+    await db.refresh(header)
+    return
 
 async def historico_precos(db: AsyncSession, codigo_barras: str, limite: int | None = None):
     """

@@ -49,23 +49,24 @@ CREATE TABLE cupom_items (
     cupom_header_id     UUID NOT NULL REFERENCES cupom_header(id) ON DELETE CASCADE,
     ordem               INT,
     codigo_barras       VARCHAR(30),              -- GTIN/EAN do produto (usado na tela 2)
-    codigo_produto_estabelecimento VARCHAR(60),    -- código interno do mercado, se vier
     descricao           VARCHAR(255) NOT NULL,
-    ncm                 VARCHAR(10),
-    cfop                VARCHAR(6),
-    unidade             VARCHAR(10),
     quantidade          NUMERIC(12,3) NOT NULL DEFAULT 1,
     valor_unitario      NUMERIC(12,4) NOT NULL,
+    unidade             VARCHAR(10),
+    valor_desconto      NUMERIC(12,2) DEFAULT 0Bye,,
     valor_total         NUMERIC(12,2) NOT NULL,
-    valor_desconto      NUMERIC(12,2) DEFAULT 0,
     raw_response        JSONB,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
+CREATE TABLE cupom_keys (
+    id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    chave_acesso        VARCHAR(44),              -- GTIN/EAN do produto (usado na tela 2)
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 CREATE INDEX idx_cupom_items_barcode ON cupom_items (codigo_barras);
 CREATE INDEX idx_cupom_items_header ON cupom_items (cupom_header_id);
 CREATE INDEX idx_cupom_items_descricao_trgm ON cupom_items USING GIN (descricao gin_trgm_ops);
-
+CREATE INDEX idx_cupom_key ON cupom_keys (chave_acesso);
 -- ------------------------------------------------------------
 -- 3. produtos_cache: cache local das consultas ao Cosmos/Bluesoft
 --    (evita bater na API externa toda vez e permite sugestão

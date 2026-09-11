@@ -2,14 +2,17 @@ import re
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from logging import getLogger
 
 from app.db import get_db
 from app.schemas import ScanCupomRequest, ScanCupomResponse
 from app.services.infosimples import consultar_cupom, InfosimplesError
-from app.services.pricing import salvar_cupom
+from app.services.pricing import save_cupom, save_cupom_not_processed
+
+
+logger = getLogger(__name__)
 
 router = APIRouter(prefix="/cupom", tags=["cupom"])
-
 
 def _extrair_chave_acesso(codigo_lido: str) -> str:
     """
@@ -35,10 +38,11 @@ async def scan_cupom(payload: ScanCupomRequest, db: AsyncSession = Depends(get_d
     try:
         raw = await consultar_cupom(chave_acesso)
     except InfosimplesError as e:
+        # save cfe id to scan again later in case it failed for any reason...
+        # await save_cupom_not_processed(db, chave_acesso)
         raise HTTPException(502, f"Falha ao consultar SEFAZ: {e}")
-
-    header = await salvar_cupom(db, chave_acesso, raw)
-
+    header = await save_cupom(db, chave_acesso, raw)
+    logger.info(f'cfe {chave_acesso} processed!')
     return ScanCupomResponse(
         cupom_header_id=str(header.id),
         chave_acesso=header.chave_acesso,

@@ -1,32 +1,58 @@
+[project]
+name = "bestprice"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28.1",
+    "pillow>=11.0.0,<12",
+    # Note: Keep pyzbar & rich here only for local desktop development
+    "pyzbar>=0.1.9",
+    "rich>=12.6.0,<16.0",
+]
+license = "MIT"
+
+[project.scripts]
+bestprice = "bestprice:main"
+
+[build-system]
+requires = ["uv_build>=0.12.1,<0.13.0"]
+build-backend = "uv_build"
+
 [tool.briefcase]
 project_name = "BestPrice"
-bundle = "com.bestprice"
-version = "1.0.0"
-url = "https://example.com/bestprice"
-license.file = "LICENSE"
-author = "BestPrice"
-author_email = "contato@example.com"
+bundle = "com.example"
+version = "0.1.0"
+url = "https://inventsis.com.br/bestprice"
+author = "Rogerio"
+author_email = "rogerio@inventsis.com.br"
 
+# --- GLOBAL BRIEFCASE APP LAYER ---
 [tool.briefcase.app.bestprice]
 formal_name = "BestPrice"
-description = "Compare precos lendo o cupom fiscal e o codigo de barras dos produtos"
+description = "App to query purchase history for each product"
 sources = ["src/bestprice"]
+# Use toga-core instead of "toga" to prevent desktop dependencies from sneaking onto Android
 requires = [
-    "httpx",
-    "pyzbar",       # decodificacao de codigo de barras a partir de imagem da camera
-    "pillow",
+    "toga-core>=0.5.6", 
 ]
 
+# --- DESKTOP PLATFORMS LAYER (Choose based on your local machine) ---
+# Uncomment the block that matches your desktop development computer:
+# [tool.briefcase.app.bestprice.linux]
+# requires = ["toga-gtk>=0.5.6"]
+
+# [tool.briefcase.app.bestprice.macOS]
+# requires = ["toga-cocoa>=0.5.6"]
+
+# [tool.briefcase.app.bestprice.windows]
+# requires = ["toga-winforms>=0.5.6"]
+
+# --- ANDROID LAYER ---
 [tool.briefcase.app.bestprice.android]
 requires = [
-    "pyzbar",
+    "httpx==0.28.1",
+    "toga-android>=0.5.6",
+    "pillow>=11.0.0,<12",
 ]
-permission.CAMERA = "BestPrice precisa da camera para ler codigos de barras"
-
-[tool.briefcase.app.bestprice.iOS]
-permission.NSCameraUsageDescription = "BestPrice precisa da camera para ler codigos de barras"
-
-# Sistemas operacionais suportados pelo BeeWare/Briefcase para este app
-[tool.briefcase.app.bestprice.macOS]
-[tool.briefcase.app.bestprice.linux]
-[tool.briefcase.app.bestprice.windows]

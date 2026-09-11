@@ -14,7 +14,7 @@ pip install -r requirements.txt
 cp .env.example .env    # preencha token da Infosimples e a DATABASE_URL
 # aplique db/schema.sql no Postgres apontado por DATABASE_URL
 
-uvicorn app.main:app --reload --port 8000
+uv run uvicorn app.main:app --reload --port 8000
 ```
 
 ## Endpoints

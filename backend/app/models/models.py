@@ -8,6 +8,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db import Base
 
 
+class CupomKeys(Base):
+    __tablename__ = "cupom_keys"
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    chave_acesso: Mapped[str] = mapped_column(String(44), unique=True, nullable=False)
+
+
 class CupomHeader(Base):
     __tablename__ = "cupom_header"
 
@@ -24,7 +30,7 @@ class CupomHeader(Base):
     raw_response: Mapped[dict] = mapped_column(JSONB, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    items: Mapped[list["CupomItem"]] = relationship(back_populates="header", cascade="all, delete-orphan")
+    items: Mapped[list["CupomItem"]] = relationship(back_populates="header", cascade="all, delete-orphan", lazy="selectin",)
 
 
 class CupomItem(Base):
@@ -37,6 +43,8 @@ class CupomItem(Base):
     descricao: Mapped[str] = mapped_column(String(255), nullable=False)
     quantidade: Mapped[float] = mapped_column(Numeric(12, 3), default=1)
     valor_unitario: Mapped[float] = mapped_column(Numeric(12, 4), nullable=False)
+    unidade: Mapped[float] = mapped_column(String(10), nullable=False)
+    valor_desconto: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
     valor_total: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
     raw_response: Mapped[dict | None] = mapped_column(JSONB)
 

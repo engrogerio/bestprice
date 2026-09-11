@@ -29,13 +29,13 @@ briefcase dev
 ## Empacotar para Android / iOS
 
 ```bash
-briefcase create android
-briefcase build android
-briefcase run android
+uv run briefcase create android
+uv run --no-project --with briefcase briefcase build android
+uv run briefcase run android
 
-briefcase create iOS
-briefcase build iOS
-briefcase run iOS
+uv run briefcase create iOS
+uv run briefcase build iOS
+uv run briefcase run iOS
 ```
 
 Antes de gerar o build, edite `src/bestprice/api_client.py` e aponte
